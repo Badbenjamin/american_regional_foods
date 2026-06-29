@@ -51,7 +51,7 @@ state_dict = {
   "New Hampshire": ["Manchester", "Nashua", "Concord", "Derry", "Dover", "Rochester", "Salem", "Merrimack", "Londonderry", "Hudson"],
   "New Jersey": ["Newark", "Jersey City", "Atlantic City", "Paterson", "Elizabeth", "Edison", "Woodbridge", "Lakewood", "Toms River", "Hamilton", "Trenton"],
   "New Mexico": ["Albuquerque", "Las Cruces", "Rio Rancho", "Santa Fe", "Roswell", "Farmington", "South Valley", "Clovis", "Hobbs", "Alamogordo"],
-  "New York": ["New York City", "Buffalo", "Rochester", "Yonkers", "Syracuse", "Albany", "New Rochelle", "Mount Vernon", "Schenectady", "Utica"],
+  "New York": ["New York City", "New York", "Buffalo", "Rochester", "Yonkers", "Syracuse", "Albany", "New Rochelle", "Mount Vernon", "Schenectady", "Utica"],
   "North Carolina": ["Charlotte", "Raleigh", "Greensboro", "Durham", "Winston-Salem", "Fayetteville", "Cary", "Wilmington", "High Point", "Concord"],
   "North Dakota": ["Fargo", "Bismarck", "Grand Forks", "Minot", "West Fargo", "Williston", "Dickinson", "Mandan", "Jamestown", "Wahpeton"],
   "Ohio": ["Columbus", "Steubenville", "Cleveland", "Cincinnati", "Toledo", "Akron", "Dayton", "Parma", "Canton", "Youngstown", "Lorain"],
@@ -124,28 +124,36 @@ for element in soup.find_all(["tr", 'h3']):
             locations_array.append(temp_element)
         
         # print(locations_array)
-        # find city/state pairs, find citys or states, find subregions
 
-        # for single locations
+        # find city/state pairs, find citys or states, find subregions
+        city_state_pair = []
+        state_array = []
+        city_array = []
+        sub_region_array = []
+        # for single locations, if in state dict, set as state
         if (len(locations_array) == 1) :
             if(locations_array[0] in state_dict) :
                 # print('state', locations_array[0])
-                state.append(locations_array[0])
+                state_array.append(locations_array[0])
             else :
                 # print('region or city', locations_array[0])
+                # check cities, if not in cities, set as subregion
+                # if in cities, also add state
                 for state in state_dict:
-                    city_array = state_dict[state]
-                    if (locations_array[0] in city_array):
-                        city.append(locations_array[0])
+                    city_array_from_dict = state_dict[state]
+                    if (locations_array[0] in city_array_from_dict):
+                        if (locations_array[0] == "New York City"):
+                            locations_array[0] = "New York"
+                        city_array.append(locations_array[0] + ", " + state)
+                        state_array.append(state)
                     else :
-                        sub_region.append(locations_array[0])
+                        if locations_array[0] not in sub_region_array :
+                            sub_region_array.append(locations_array[0])
+
         # city state pairs in arrays? 
         # sub regions?
         if (len(locations_array) > 1):
-            city_state_pair = []
-            state_array = []
-            city_array = []
-            sub_region_array = []
+            
             for i ,location in enumerate(locations_array):
                 # if its a state and not a repeat, put in state array
                 if ((location in state_dict) and (location not in state_array)):
@@ -153,33 +161,36 @@ for element in soup.find_all(["tr", 'h3']):
                 else :
                     # if its not a state, check if city or subregion 
                     if (location not in state_dict):
-                        # print('larr',locations_array)
-                        # print('loc', i, location)
                         # if i+1 in state_dict, state = state, city = city
+                        # if location is not a state, but the next one is, then it could be a city
                         if (i + 1 < len(locations_array)):
-
-                            if locations_array[i+1] in state_dict :
-                                state = locations_array[i+1]
-                                city_or_sub_region = locations_array[i]
-                                state_array.append(state)
-                                if city_or_sub_region in state_dict[state]:
-                                    city_array.append(city_or_sub_region + ", " + state)
-                                    
+                            first_element = locations_array[i]
+                            second_element = locations_array[i+1]
+                            if second_element in state_dict :
+                                # state.append(second_element)
+                                # city_or_sub_region = locations_array[i]
+                                state_array.append(second_element)
+                                # if city is in array of citys which is key of state value
+                                if first_element in state_dict[second_element]:
+                                    city_array.append(first_element+ ", " + second_element) 
                                 else:
-                                    sub_region_array.append(city_or_sub_region)
+                                    if location not in sub_region_array:
+                                        sub_region_array.append(location)
+                
+                            
                                     
-            city = city_array
-            state = state_array
-            sub_region = sub_region_array
+        city = city_array
+        state = state_array
+        sub_region = sub_region_array
                     
             # print(city, state, sub_region)
         rows.append({
             "type" : current_title,
             "dish": dish,
             "region": region,
-            "state": None,
-            "city" : None,
-            "sub-region" : None,
+            "state": state,
+            "city" :city,
+            "sub-region" : sub_region,
             "location": location,
             "description": description,
             "image_url": image_url,
@@ -188,5 +199,5 @@ for element in soup.find_all(["tr", 'h3']):
 
 
 df = pd.DataFrame(rows)
-# pprint.pp(rows)
-# df.to_csv("regional_foods_2.csv", index=False)
+pprint.pp(rows)
+df.to_csv("regional_foods_14.csv", index=False)
